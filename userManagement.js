@@ -44,7 +44,9 @@ var userManagement = {
 					lastName: {
 						regex: validation.regexes.lastName
 					},
-					password: null
+					password: {
+						regex: validation.regexes.anything
+					}
 				};
 				var errors = validator.validate(req.body, validationDef);
 				if (errors)
@@ -83,7 +85,7 @@ var userManagement = {
 									else
 										console.log("Message sent: " + response.message);
 								});
-								res.redirect('/html/logIn.html');
+								res.redirect('/html/login.html');
 							}
 							else
 								res.redirect('/html/error.html?err=doesnotexist');
@@ -162,7 +164,7 @@ var userManagement = {
 								if (err)
 									res.redirect('/html/error.html?err=' + err);
 								else
-									res.redirect('/html/logIn.html');
+									res.redirect('/html/login.html');
 							});
 						}
 						else
