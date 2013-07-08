@@ -25,13 +25,13 @@ var validation = {
 					}
 				}
 				// otherwise make sure parameter is optional
-				else if (validationDef[key].optional !== true)
+				else if (validationDef[key] == null || validationDef[key].optional !== true)
 					pushError(key, 'is missing');
 			});
 			// check for parameters that aren't specified in validation
 			Object.keys(params).forEach(function(key) {
 				if (!(key in validationDef))
-					pushError(key, 'is not required');
+					pushError(key, 'is an invalid parameter');
 			})
 			return errors;
 			}
@@ -41,7 +41,8 @@ var validation = {
 	regexes: {
 		email: /^[A-Z0-9._%-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i,
 		name: /[A-Z]/ig,
-		lastName: /[A-Z' ]/ig
+		lastName: /[A-Z' ]/ig,
+		anything: /.+/ig
 	}
 };
 
