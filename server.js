@@ -1,9 +1,8 @@
 var express = require('express');
 var http = require('http');
 var pg = require('pg');
-var sqlUtils = require('./sqlUtils');
 var url = require('url');
-var validation = require ('./validation');
+var validation = require('./validation');
 var validator = validation.newValidator();
 
 var client = new pg.Client('tcp://rscalfani:5432@localhost/maiden');
@@ -22,7 +21,7 @@ client.connect(function(err) {
 	server.use(express.bodyParser());
 
 	server.get('/', function(req, res, next) {
-		res.redirect('/html/logIn.html')
+		res.redirect('/html/login.html')
 	});
 	server.use('/', express.static(__dirname + '/../Maiden'));
 
