@@ -5,17 +5,17 @@ var url = require('url');
 var validation = require('./validation');
 var validator = validation.newValidator();
 
-var client = new pg.Client('tcp://rscalfani:5432@localhost/maiden');
+var dbClient = new pg.Client('tcp://rscalfani:5432@localhost/maiden');
 
-client.connect(function(err) {
+dbClient.connect(function(err) {
 	if (err)
 	{
 		console.log('Cannot connect to database:', err);
 		process.exit(1);
 	}
 
-	var authenticator = require('./authentication').newAuthenticator(client);
-	var userManager = require('./userManagement').newUserManager(validation, validator, authenticator, client);
+	var authenticator = require('./authentication').newAuthenticator(dbClient);
+	var userManager = require('./userManagement').newUserManager(validation, validator, authenticator, dbClient);
 
 	var server = express();
 	server.use(express.bodyParser());
@@ -28,14 +28,14 @@ client.connect(function(err) {
 	server.post('/login', userManager.login);
 	server.post('/join', userManager.join);
 	server.post('/emailCheck', userManager.emailCheck);
-
-	console.log('running');
-	http.createServer(server).listen(8080);
-
 	server.get('/confirm', userManager.confirm);
 
+	var port = 8080;
+	console.log('Server listening on port:', port);
+	http.createServer(server).listen(port);
+
+	// default 404 error page
 	server.use(function(req, res) {
 		res.redirect('/html/error.html');
-		console.log('got here');
 	});
 });
