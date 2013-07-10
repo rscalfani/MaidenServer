@@ -1,7 +1,8 @@
+var crypto = require('crypto');
 var sqlUtils = require('./sqlUtils');
 
 var authentication = {
-	newAuthenticator: function(client) {
+	newAuthenticator: function(dbClient) {
 		var authenticator = {
 			authenticate: function(email, password, cb) {
 				var cmd = "" +
@@ -11,7 +12,7 @@ var authentication = {
 					"   AND password = " + sqlUtils.quote(password) + "\n" +
 					"	AND confirmation_id IS NULL";
 				console.log(cmd);
-				client.query(cmd, function(err, result) {
+				dbClient.query(cmd, function(err, result) {
 					if (err)
 						cb(false);
 					else
@@ -21,6 +22,15 @@ var authentication = {
 						else
 							cb(true);
 					}
+				});
+			},
+			passwordHash: function(userId, password, cb) {
+				var iteration = parseInt(userId.substring(userId.length - 4), 16);
+				crypto.pbkdf2(password, userId, iteration + 10000, 64, function(err, derivedKey) {
+					if (err)
+						cb(err);
+					else
+						cb(err, derivedKey.toString('hex'));
 				});
 			}
 		};
