@@ -1,3 +1,4 @@
+var crypto = require('crypto');
 var emailConfig = require('./emailConfig');
 var emailer = require('./emailer').newEmailer(emailConfig);
 var sqlUtils = require('./sqlUtils');
@@ -6,6 +7,9 @@ var uuid = require('node-uuid');
 
 var userManagement = {
 	newUserManager: function(validation, validator, authenticator, client) {
+		var saltHash = function(password, salt, cb) {
+			crypto.pbkdf2(password, salt, 10000, 64, cb);
+		};
 		var manager = {
 			login: function(req, res) {
 				var validationDef = {
@@ -22,11 +26,32 @@ var userManagement = {
 				}
 				console.log(req.body);
 
-				authenticator.authenticate(req.body.email, req.body.password, function(authenticated) {
-					if (authenticated)
-						res.redirect('http://skavenger.com.ar/homerswebpage/');
-					else
+				var cmd = "" +
+					"SELECT user_id \n" +
+					"FROM users \n" +
+					"WHERE email = " + sqlUtils.quote(req.body.email);
+				console.log(cmd);
+
+				client.query(cmd, function(err, result) {
+					if (err || result.rows.length == 0)
 						res.redirect('/html/error.html?err=notauthenticated');
+					else
+					{
+						saltHash(req.body.password, result.rows[0].user_id, function(err, derivedKey) {
+							if (err)
+								console.log(err);
+							else
+							{
+								var passwordHash = derivedKey.toString('hex');
+								authenticator.authenticate(req.body.email, passwordHash, function(authenticated) {
+									if (authenticated)
+										res.redirect('http://skavenger.com.ar/homerswebpage/');
+									else
+										res.redirect('/html/error.html?err=notauthenticated');
+								});
+							}
+						});
+					}
 				});
 			},
 			join: function(req, res) {
@@ -56,39 +81,48 @@ var userManagement = {
 				}
 				else
 				{
-					var confirmationId = uuid.v4();
-					var cmd = "" +
-						"INSERT INTO users (first_name, middle_name, last_name, email, password, sign_up_ts, confirmation_id) \n" +
-						"VALUES (" + sqlUtils.quote(req.body.firstName) + ", " + sqlUtils.quote(req.body.middleName) + ", " + sqlUtils.quote(req.body.lastName) + ", " + sqlUtils.quote(req.body.email) + ", " + sqlUtils.quote(req.body.password) + ", CURRENT_TIMESTAMP AT TIME ZONE 'UTC', " + sqlUtils.quote(confirmationId) + ")";
-					console.log(cmd);
-					client.query(cmd, function(err, result) {
+					var userId = uuid.v4();
+					saltHash(req.body.password, userId, function(err, derivedKey) {
 						if (err)
-							res.redirect('/html/error.html?err=' + err);
+							console.log(err);
 						else
 						{
-							console.log(result);
-							if (result.rowCount == 1)
-							{
-								var urlParts = url.parse(req.headers.origin);
-								console.log(urlParts);
-								urlParts.pathname = '/confirm';
-								urlParts.search = 'confirmationId=' + confirmationId;
-								var confirmationLink = url.format(urlParts);
-								emailer.send({
-									from: '<rscalfani@gmail.com>',
-									to: '<' + req.body.email + '>',
-									subject: 'Welcome to Maiden, ' + req.body.firstName,
-									html: '<p>Welcome to Maiden</p></br>Please click this link to confirm your email: <a href="' + confirmationLink + '">'+ confirmationLink + '</a>'
-								}, function(err, response){
-									if(err)
-										console.log(err);
+							var passwordHash = derivedKey.toString('hex');
+							var confirmationId = uuid.v4();
+							var cmd = "" +
+								"INSERT INTO users (first_name, middle_name, last_name, email, password, sign_up_ts, confirmation_id, user_id) \n" +
+								"VALUES (" + sqlUtils.quote(req.body.firstName) + ", " + sqlUtils.quote(req.body.middleName) + ", " + sqlUtils.quote(req.body.lastName) + ", " + sqlUtils.quote(req.body.email) + ", " + sqlUtils.quote(passwordHash) + ", CURRENT_TIMESTAMP AT TIME ZONE 'UTC', " + sqlUtils.quote(confirmationId) + "," + sqlUtils.quote(userId) + ")";
+							console.log(cmd);
+							client.query(cmd, function(err, result) {
+								if (err)
+									res.redirect('/html/error.html?err=' + err);
+								else
+								{
+									console.log(result);
+									if (result.rowCount == 1)
+									{
+										var urlParts = url.parse(req.headers.origin);
+										console.log(urlParts);
+										urlParts.pathname = '/confirm';
+										urlParts.search = 'confirmationId=' + confirmationId;
+										var confirmationLink = url.format(urlParts);
+										emailer.send({
+											from: '<rscalfani@gmail.com>',
+											to: '<' + req.body.email + '>',
+											subject: 'Welcome to Maiden, ' + req.body.firstName,
+											html: '<p>Welcome to Maiden</p></br>Please click this link to confirm your email: <a href="' + confirmationLink + '">'+ confirmationLink + '</a>'
+										}, function(err, response){
+											if(err)
+												console.log(err);
+											else
+												console.log("Message sent: " + response.message);
+										});
+										res.redirect('/html/login.html');
+									}
 									else
-										console.log("Message sent: " + response.message);
-								});
-								res.redirect('/html/login.html');
-							}
-							else
-								res.redirect('/html/error.html?err=doesnotexist');
+										res.redirect('/html/error.html?err=doesnotexist');
+								}
+							});
 						}
 					});
 				}
@@ -173,7 +207,7 @@ var userManagement = {
 				});
 			}
 		};
-				return manager;
+		return manager;
 	}
 };
 
