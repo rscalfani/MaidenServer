@@ -20,7 +20,7 @@ var validation = {
 							if (paramValidation.optional == true && paramValue == '')
 								return;
 							// check regex
-							if (paramValidation.regex && !paramValue.match(paramValidation.regex))
+							if (paramValidation.regex && !paramValue.match(new RegExp('^' + paramValidation.regex.source + '$', 'i')))
 								pushError(key, 'is invalid');
 						}
 					}
@@ -39,10 +39,11 @@ var validation = {
 		return validator;
 	},
 	regexes: {
-		email: /^[A-Z0-9._%-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i,
-		name: /[A-Z]/ig,
-		lastName: /[A-Z' ]/ig,
-		anything: /.+/ig
+		email: /[A-Z0-9._%-]+@[A-Z0-9.-]+\.[A-Z]{2,4}/,
+		name: /[A-Z]+/,
+		lastName: /[A-Z' ]+/,
+		anything: /.+/,
+		uuid: /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/
 	}
 };
 
