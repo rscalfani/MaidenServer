@@ -14,18 +14,20 @@ var validation = {
 					{
 						var paramValue = params[key];
 						var paramValidation = validationDef[key];
-						if (paramValidation != null)
+						// optional parameters can be blank
+						if (paramValidation.optional == true && paramValue == '')
+							return;
+						// check regex
+						if (paramValidation.regex)
 						{
-							// optional parameters can be blank
-							if (paramValidation.optional == true && paramValue == '')
-								return;
-							// check regex
-							if (paramValidation.regex && !paramValue.match(new RegExp('^' + paramValidation.regex.source + '$', 'i')))
+							if (!paramValue.match(new RegExp('^' + paramValidation.regex.source + '$', 'i')))
 								pushError(key, 'is invalid');
 						}
+						else
+							pushError(key, 'is missing regex in validation');
 					}
 					// otherwise make sure parameter is optional
-					else if (validationDef[key] == null || validationDef[key].optional !== true)
+					else if (!validationDef[key].optional)
 						pushError(key, 'is missing');
 				});
 				// check for parameters that aren't specified in validation
@@ -43,7 +45,8 @@ var validation = {
 		name: /[A-Z]+/,
 		lastName: /[A-Z' ]+/,
 		anything: /.+/,
-		uuid: /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/
+		uuid: /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/,
+		checkbox: /on|off/
 	}
 };
 
