@@ -12,7 +12,13 @@ var userManagement = {
 					email: {
 						regex: validation.regexes.email
 					},
-					password: null
+					'remember-me': {
+						regex: validation.regexes.checkbox,
+						optional: true //TODO remove when forms are submitted via ajax
+					},
+					password: {
+						regex: validation.regexes.anything
+					}
 				};
 				var errors = validator.validate(req.body, validationDef);
 				if (errors)
